@@ -16,6 +16,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
@@ -25,14 +26,17 @@ import javafx.scene.paint.Color;
 
 public class Main extends Application {
 	
-	String fileName = "dw_employee_payroll.srd", type, name;
+	String fileName = "dw_employee_stathera.srd", type, name, dbname;
 	Stage window;
 	Label dw_name;
+	TextField dw_sql;
+	boolean update, updatewhereclause;
 	
-	TableView<Product> table;	
+	
+	TableView<DataWindowColumn> table;	
 	//TableView<DataWindowObject> table;
-	ArrayList<TableColumn> dwColumns = new ArrayList<TableColumn>();
-	
+	//ArrayList<TableColumn> dwColumns = new ArrayList<TableColumn>();
+	DataWindowObject dwo = new DataWindowObject();
 	
 	public static void main(String[] args) {
 		launch(args);
@@ -45,36 +49,23 @@ public class Main extends Application {
 		window.setTitle("Integrate DataWindow");
 		
 		//create table columns
-	/**	TableColumn<Product, String> nameColumn = new TableColumn<>("Name");
-		nameColumn.setMinWidth(200);
-		nameColumn.setCellValueFactory(new PropertyValueFactory<>("name") );
-		
-		TableColumn<Product, String> priceColumn = new TableColumn<>("Price");
-		priceColumn.setMinWidth(200);
-		priceColumn.setCellValueFactory(new PropertyValueFactory<>("price") );
-		
-		TableColumn<Product, String> column3 = new TableColumn<>("Column3");
-		column3.setMinWidth(200);
-		column3.setCellValueFactory(new PropertyValueFactory<>("column3") );
-				
-		dwColumns.add(nameColumn);
-		dwColumns.add(priceColumn);
-		dwColumns.add(column3);		
-	 **/		
 		table = new TableView<>();
-		table.setItems(getProduct());
+		//table.setItems(getProduct());		//Use this to add rows
 		
 		readFile();				//read .srd file and populate dwColumns		
 		//add columns to table view
-		for (TableColumn tc : dwColumns)
+		for (DataWindowColumn dwc : dwo.columns)
 		{
-			table.getColumns().add(tc);
+			table.getColumns().add(new TableColumn(dwc.name));
 		}
 			
 		dw_name = new Label("File Name: " + fileName);
+		dw_sql = new TextField("SQL Query: "+ dwo.sqlRetrieve);
+		dw_sql.setMinHeight(50);
+		
 		//dw_name.setTextFill(Color.web("#0076a3"));
 		VBox vbox = new VBox();
-		vbox.getChildren().addAll(dw_name, table);	
+		vbox.getChildren().addAll(dw_name, dw_sql, table);	
 		
 		Scene scene = new Scene(vbox);
 		window.setScene(scene);
@@ -91,13 +82,11 @@ public class Main extends Application {
 		
 		try {
 			in = new BufferedReader( new InputStreamReader( new FileInputStream(fileName), "UTF8"));
-
 			
 			while((line = in.readLine()) != null)
 			{			    
-				if (line.trim().startsWith("column="))
-				{
-					
+				if (line.trim().startsWith("column="))			//read columns
+				{			
 					StringTokenizer st = new StringTokenizer(line.substring(line.indexOf("(")+ 1 ), " ");
 					while (st.hasMoreTokens() )
 					{	
@@ -107,27 +96,38 @@ public class Main extends Application {
 						{
 							type = pair[1];
 						}
+						if(pair[0].equals("update") )
+						{
+							update =  pair[1] == "yes";
+						}
+						if(pair[0].equals("updatewhereclause") )
+						{
+							updatewhereclause =  pair[1] == "yes";
+						}
 						else if(pair[0].equals("name") )
 						{
 							name = pair[1];
 						}
-						//String[] pair = st.nextToken().split("=");
-						//System.out.println(pair[1] + ", " + pair[2]);
+						else if(pair[0].equals("dbname") )
+						{
+							dbname = pair[1];
+						}					
 					}
-					
-					
-					//type = line.substring( line.indexOf("type=")+5  , line.indexOf("type=")+5 + line.indexOf(" "));	//ready column type and name 
-					//name = line.substring( line.indexOf("name=")+5  , line.indexOf("name=")+5 + line.indexOf(" "));	 //from column specification
-					
-					dwColumns.add(new TableColumn<>(name));
-				    
+					dwo.columns.add(new DataWindowColumn(type, update, updatewhereclause, name, dbname));
 				}
 				
-			}
-			
-			
-			
-			
+				if (line.trim().startsWith("retrieve="))			//read the sql preview of the datawindow that is inside quotes " "
+				{
+					dwo.sqlRetrieve = line.substring(line.indexOf("retrieve=") + 9 );
+					line = in.readLine();
+					while(! line.contains("\""))						
+					{
+						dwo.sqlRetrieve += line;
+						line = in.readLine();
+					}
+					
+				}
+			}	
 			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -143,17 +143,5 @@ public class Main extends Application {
 			}			
 		}
 	}
-	
-	
-	public ObservableList<Product> getProduct()
-	{
-		ObservableList<Product> products = FXCollections.observableArrayList();
-		products.add(new Product("Product 1 ", 100));
-		products.add(new Product("Product 2 ", 3));
-		products.add(new Product("Product 3 ", 143));
-		
-		return products;
-	}
-	
 	
 }
