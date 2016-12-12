@@ -5,6 +5,9 @@ import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.StringTokenizer;
 
@@ -34,9 +37,10 @@ public class Main extends Application {
 	
 	
 	TableView<DataWindowColumn> table;	
-	//TableView<DataWindowObject> table;
-	//ArrayList<TableColumn> dwColumns = new ArrayList<TableColumn>();
 	DataWindowObject dwo = new DataWindowObject();
+	OracleConnector ora =  new OracleConnector();
+	Statement stmt;
+	ResultSet rs ;	
 	
 	public static void main(String[] args) {
 		launch(args);
@@ -48,13 +52,13 @@ public class Main extends Application {
 		window = primaryStage;
 		window.setTitle("Integrate DataWindow");
 		
-		//create table columns
-		table = new TableView<>();
-		//table.setItems(getProduct());		//Use this to add rows
 		
-		readFile();				//read .srd file and populate dwColumns		
-		//add columns to table view
-		for (DataWindowColumn dwc : dwo.columns)
+		table = new TableView<>();					//create table columns
+		//table.setItems(getProduct());				//Use this to add rows
+		
+		readFile();									//read .srd file and populate dwColumns		
+		
+		for (DataWindowColumn dwc : dwo.columns)	//add columns to table view
 		{
 			table.getColumns().add(new TableColumn(dwc.name));
 		}
@@ -62,6 +66,28 @@ public class Main extends Application {
 		dw_name = new Label("File Name: " + fileName);
 		dw_sql = new TextField("SQL Query: "+ dwo.sqlRetrieve);
 		dw_sql.setMinHeight(50);
+		
+		try {
+			stmt = ora.getCon().createStatement();
+			rs = stmt.executeQuery(dwo.sqlRetrieve);
+			
+			
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		finally
+		{
+			try {
+				rs.close();
+				stmt.close();
+				ora.getCon().close();
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}		
+		}
+		
 		
 		//dw_name.setTextFill(Color.web("#0076a3"));
 		VBox vbox = new VBox();
